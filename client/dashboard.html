@@ -8,6 +8,10 @@
   <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
   <link rel="stylesheet" href="./css/tailwind.css" />
   <link rel="stylesheet" href="./css/style.css" />
+  <script>
+    // Set API base from environment or default to production
+    window.ISBL_API_BASE = window.ISBL_API_BASE || 'https://isbl.onrender.com';
+  </script>
 </head>
 <body data-page="dashboard">
   <div id="toasts"></div>
