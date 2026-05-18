@@ -27,64 +27,79 @@ const createTokenAndSession = ({ role, userId, extra = {} }) => {
 };
 
 router.post("/admin-login", async (req, res) => {
-  const { email, password } = req.body || {};
-  if (!email || !password) {
-    return res.status(400).json({ message: "Email and password are required." });
+  try {
+    const { email, password } = req.body || {};
+    if (!email || !password) {
+      return res.status(400).json({ message: "Email and password are required." });
+    }
+
+    const admin = adminByEmail.get(email.trim().toLowerCase());
+    if (!admin) return res.status(401).json({ message: "Invalid credentials." });
+
+    const valid = await verifyPassword(password, admin.password_hash);
+    if (!valid) return res.status(401).json({ message: "Invalid credentials." });
+
+    const token = createTokenAndSession({
+      role: "admin",
+      userId: admin.id,
+      extra: { adminId: admin.id, email: admin.email }
+    });
+
+    return res.json({
+      token,
+      user: { id: admin.id, role: "admin", email: admin.email }
+    });
+  } catch (error) {
+    console.error("Admin login error:", error);
+    return res.status(500).json({ message: "Internal server error." });
   }
-
-  const admin = adminByEmail.get(email.trim().toLowerCase());
-  if (!admin) return res.status(401).json({ message: "Invalid credentials." });
-
-  const valid = await verifyPassword(password, admin.password_hash);
-  if (!valid) return res.status(401).json({ message: "Invalid credentials." });
-
-  const token = createTokenAndSession({
-    role: "admin",
-    userId: admin.id,
-    extra: { adminId: admin.id, email: admin.email }
-  });
-
-  return res.json({
-    token,
-    user: { id: admin.id, role: "admin", email: admin.email }
-  });
 });
 
 router.post("/team-login", (req, res) => {
-  const { name, entryNumber } = req.body || {};
-  if (!name || !entryNumber) {
-    return res.status(400).json({ message: "Name and entry number are required." });
-  }
-
-  const member = memberByCredentials.get(name.trim(), entryNumber.trim().toUpperCase());
-  if (!member) return res.status(401).json({ message: "Member not found." });
-  if (!member.active) return res.status(403).json({ message: "Your access is currently disabled." });
-
-  const token = createTokenAndSession({
-    role: "team",
-    userId: member.id,
-    extra: {
-      memberId: member.id,
-      name: member.name,
-      entryNumber: member.entry_number
+  try {
+    const { name, entryNumber } = req.body || {};
+    if (!name || !entryNumber) {
+      return res.status(400).json({ message: "Name and entry number are required." });
     }
-  });
 
-  return res.json({
-    token,
-    user: {
-      id: member.id,
+    const member = memberByCredentials.get(name.trim(), entryNumber.trim().toUpperCase());
+    if (!member) return res.status(401).json({ message: "Member not found." });
+    if (!member.active) return res.status(403).json({ message: "Your access is currently disabled." });
+
+    const token = createTokenAndSession({
       role: "team",
-      name: member.name,
-      entryNumber: member.entry_number,
-      memberRole: member.role
-    }
-  });
+      userId: member.id,
+      extra: {
+        memberId: member.id,
+        name: member.name,
+        entryNumber: member.entry_number
+      }
+    });
+
+    return res.json({
+      token,
+      user: {
+        id: member.id,
+        role: "team",
+        name: member.name,
+        entryNumber: member.entry_number,
+        memberRole: member.role
+      }
+    });
+  } catch (error) {
+    console.error("Team login error:", error);
+    return res.status(500).json({ message: "Internal server error." });
+  }
 });
 
 router.post("/logout", authenticate, (req, res) => {
-  revokeSession.run(req.user.jti);
-  return res.json({ message: "Logged out." });
+  try {
+    revokeSession.run(req.user.jti);
+    return res.json({ message: "Logged out." });
+  } catch (error) {
+    console.error("Logout error:", error);
+    return res.status(500).json({ message: "Internal server error." });
+  }
 });
 
 export default router;
