@@ -64,8 +64,8 @@ const bootstrap = async () => {
 
   initSocket(server);
   const port = Number(process.env.PORT || 4000);
-  server.listen(port, () => {
-    console.log(`ISBL backend listening on http://localhost:${port}`);
+  server.listen(port, "0.0.0.0", () => {
+    console.log(`ISBL backend listening on port ${port}`);
   });
 };
 
