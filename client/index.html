@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ISBL Portal · In-Silico Biophysics Lab</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="./css/tailwind.css" />
+  <link rel="stylesheet" href="./css/style.css" />
+</head>
+<body data-page="index">
+  <div id="toasts"></div>
+
+  <div id="screen-landing" class="screen active">
+    <div class="brand">
+      <div class="brand-pill"><span class="dot"></span>IIT Delhi · Biophysics Lab</div>
+      <h1>ISBL Portal</h1>
+      <p class="brand-sub">In-Silico Biophysics Lab · Secure Access Gateway</p>
+    </div>
+
+    <div class="entry-grid">
+      <button class="entry-card team-card" id="goto-team-login">
+        <span class="card-ico">🔬</span>
+        <h3>Team Access</h3>
+      </button>
+      <button class="entry-card admin-card" id="goto-admin-login">
+        <span class="card-ico">⚙️</span>
+        <h3>Admin Acess</h3>
+      </button>
+    </div>
+  </div>
+
+  <div id="screen-team-login" class="screen">
+    <button class="back-btn" data-back="landing">← Back</button>
+    <form class="form-shell" id="team-login-form">
+      <div class="form-head">
+        <span class="fi">🔬</span>
+        <h2>Team Login</h2>
+        <p>Enter your registered details to continue</p>
+      </div>
+      <div class="field">
+        <label>Name</label>
+        <input id="t-name" type="text" placeholder="Full name" autocomplete="name" required />
+      </div>
+      <div class="field">
+        <label>Entry Number</label>
+        <input id="t-entry" type="text" placeholder="e.g. 2025ME001" autocomplete="off" required />
+      </div>
+      <button class="btn btn-primary" id="t-btn" type="submit">Access Lab Portal</button>
+      <p class="err" id="t-err"></p>
+    </form>
+  </div>
+
+  <div id="screen-admin-login" class="screen">
+    <button class="back-btn" data-back="landing">← Back</button>
+    <form class="form-shell admin-shell" id="admin-login-form">
+      <div class="form-head">
+        <span class="fi">⚙️</span>
+        <h2>Admin Login</h2>
+      </div>
+      <div class="field">
+        <label>Email</label>
+        <input id="a-email" class="wi" type="email" placeholder="admin@isbl.ac.in" required />
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input id="a-pass" class="wi" type="password" placeholder="••••••••" required />
+      </div>
+      <button class="btn btn-danger" id="a-btn" type="submit">Admin Sign In</button>
+      <p class="err" id="a-err"></p>
+    </form>
+  </div>
+
+  <script type="module" src="./js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ISBL · Admin Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  />
+  <script>
+    window.tailwind = window.tailwind || {};
+    window.tailwind.config = {
+      darkMode: "class"
+    };
+  </script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="./css/tailwind.css" />
+  <link rel="stylesheet" href="./css/style.css" />
+  <style>
+    body[data-page="admin"] {
+      font-family: "Inter", sans-serif;
+      background: #0f0f0f !important;
+      color: #f3f4f6;
+      --bg: #0f0f0f;
+      --bg2: #141414;
+      --surface: #171717;
+      --surface2: #1f1f1f;
+      --border: #2a2a2a;
+      --accent: #4f98a3;
+      --accent-d: rgba(79, 152, 163, 0.2);
+      --text: #f3f4f6;
+      --text-dim: #d1d5db;
+      --text-muted: #9ca3af;
+      --warn: #ef4444;
+      --warn-d: rgba(239, 68, 68, 0.16);
+      --shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+    }
+
+    body[data-page="admin"]::before {
+      opacity: 0.1;
+    }
+
+    body[data-page="admin"] .navbar {
+      background: rgba(20, 20, 20, 0.92);
+      border-bottom-color: rgba(255, 255, 255, 0.12);
+    }
+
+    body[data-page="admin"] .nb-brand {
+      color: #f9fafb;
+    }
+
+    body[data-page="admin"] .tabbar {
+      background: rgba(20, 20, 20, 0.88);
+      border-bottom-color: rgba(255, 255, 255, 0.12);
+    }
+
+    body[data-page="admin"] .tab-btn {
+      color: #d1d5db;
+    }
+
+    body[data-page="admin"] .tab-btn.on {
+      color: #7dd3de;
+      border-bottom-color: #7dd3de;
+    }
+
+    body[data-page="admin"] .stat-card,
+    body[data-page="admin"] .welcome-card {
+      background: #171717;
+      border-color: rgba(255, 255, 255, 0.14);
+    }
+
+    body[data-page="admin"] .welcome-card h3 {
+      color: #f9fafb;
+    }
+
+    body[data-page="admin"] .welcome-card p,
+    body[data-page="admin"] .sl,
+    body[data-page="admin"] .panel-meta,
+    body[data-page="admin"] .embed-lbl {
+      color: #d1d5db;
+    }
+
+    body[data-page="admin"] .panel-title {
+      color: #f3f4f6;
+    }
+
+    @keyframes glowPulse {
+      0%,
+      100% {
+        box-shadow: 0 0 8px rgba(239, 68, 68, 0.25);
+      }
+      50% {
+        box-shadow: 0 0 10px rgba(239, 68, 68, 0.65);
+      }
+    }
+
+    @keyframes slideDown {
+      from {
+        transform: translateY(-6px);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    .task-priority-high {
+      box-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
+      animation: glowPulse 2s ease-in-out infinite;
+    }
+
+    .task-priority-medium {
+      box-shadow: 0 0 6px rgba(59, 130, 246, 0.4);
+    }
+
+    .task-new {
+      animation: slideDown 0.3s ease-out;
+    }
+  </style>
+</head>
+<body data-page="admin">
+  <div id="toasts"></div>
+
+  <div id="screen-admin" class="screen active">
+    <header>
+      <nav class="navbar" aria-label="Admin top navigation">
+        <span class="nb-brand">ISBL Admin</span>
+        <div class="nb-right">
+          <button class="badge admin" id="pwd-toggle-btn">ADMIN</button>
+          <button class="nb-logout" id="admin-logout-btn">Sign Out</button>
+        </div>
+      </nav>
+
+      <div class="tabbar" id="admin-tabs" role="tablist" aria-label="Admin sections">
+        <button class="tab-btn on" data-panel="tab-adm-home" role="tab" aria-selected="true">Overview</button>
+        <button class="tab-btn" data-panel="tab-adm-members" role="tab" aria-selected="false">Members</button>
+        <button class="tab-btn" data-panel="tab-adm-tasks" role="tab" aria-selected="false">Tasks</button>
+        <button class="tab-btn" data-panel="tab-adm-docs" role="tab" aria-selected="false">Docs</button>
+        <button class="tab-btn" data-panel="tab-adm-meet" role="tab" aria-selected="false">Schedule</button>
+      </div>
+    </header>
+
+    <main id="admin-main" role="main">
+    <p id="admin-live-status" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></p>
+
+    <section id="tab-adm-home" class="panel on" aria-labelledby="home-overview-heading">
+      <h2 id="home-overview-heading" class="panel-title">Overview</h2>
+      <dl class="stats-row" aria-label="Admin statistics">
+        <div class="stat-card">
+          <dt class="sl">Members</dt>
+          <dd class="sv" id="as-members" aria-live="polite">—</dd>
+        </div>
+        <div class="stat-card">
+          <dt class="sl">Active</dt>
+          <dd class="sv" id="as-active" aria-live="polite">—</dd>
+        </div>
+        <div class="stat-card">
+          <dt class="sl">Today</dt>
+          <dd class="sv" id="as-date" aria-live="polite">—</dd>
+        </div>
+        <div class="stat-card">
+          <dt class="sl">IST Time</dt>
+          <dd class="sv" id="as-time" aria-live="polite">—</dd>
+        </div>
+      </dl>
+    </section>
+
+    <section id="tab-adm-members" class="panel" aria-labelledby="members-heading">
+      <h2 id="members-heading" class="panel-title">Manage Team Members</h2>
+
+      <div class="member-grid" id="a-members" aria-live="polite">
+        <div class="empty"><span class="spin warn"></span>&nbsp;Loading members...</div>
+      </div>
+
+      <div class="sep"></div>
+      <form id="member-add-form" class="add-grid">
+        <div class="field"><label>Name</label><input id="new-name" type="text" required /></div>
+        <div class="field"><label>Entry Number</label><input id="new-entry" type="text" required /></div>
+        <div class="field"><label>Role</label><input id="new-role" type="text" value="Research Scholar" required /></div>
+        <button class="btn btn-primary btn-sm" id="add-btn" type="submit">+ Add</button>
+      </form>
+      <p class="err" id="m-err"></p>
+    </section>
+
+    <section id="tab-adm-tasks" class="panel" aria-labelledby="tasks-heading">
+      <div class="h-[calc(100vh-245px)] min-h-[560px] overflow-hidden rounded-2xl border border-white/10 bg-[#0f0f0f]">
+        <div class="flex h-full">
+          <aside class="w-[250px] shrink-0 border-r border-white/10 bg-[#111111]">
+            <div class="border-b border-white/10 px-4 py-3">
+              <h3 class="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-200">Members</h3>
+            </div>
+            <div id="task-member-list" class="h-[calc(100%-52px)] space-y-2 overflow-y-auto p-3"></div>
+          </aside>
+
+          <section class="flex min-w-0 flex-1 flex-col bg-[#0f0f0f]">
+            <div class="sticky top-0 z-20 border-b border-white/10 bg-white/5 backdrop-blur">
+              <div class="flex min-h-[52px] items-center justify-between gap-4 px-4">
+                <h2 id="tasks-heading" class="text-sm font-semibold tracking-wide text-zinc-100">Task Manager</h2>
+
+                <div class="flex items-center gap-2">
+                  <div class="hidden items-center rounded-lg border border-white/10 bg-[#131313] p-1 sm:flex">
+                    <button
+                      type="button"
+                      class="rounded-md border border-[#4f98a3]/70 bg-[#4f98a3]/25 px-2 py-1 text-xs text-teal-200 transition duration-200 ease-out"
+                      data-priority-filter="ALL">
+                      All
+                    </button>
+                    <button
+                      type="button"
+                      class="rounded-md border border-transparent px-2 py-1 text-xs text-zinc-300 transition duration-200 ease-out"
+                      data-priority-filter="HIGH">
+                      High
+                    </button>
+                    <button
+                      type="button"
+                      class="rounded-md border border-transparent px-2 py-1 text-xs text-zinc-300 transition duration-200 ease-out"
+                      data-priority-filter="MEDIUM">
+                      Medium
+                    </button>
+                    <button
+                      type="button"
+                      class="rounded-md border border-transparent px-2 py-1 text-xs text-zinc-300 transition duration-200 ease-out"
+                      data-priority-filter="LOW">
+                      Low
+                    </button>
+                  </div>
+
+                  <button
+                    id="task-add-btn"
+                    type="button"
+                    class="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-[#4f98a3] text-zinc-950 transition-transform duration-200 ease-out hover:bg-[#68acb6] active:scale-95"
+                    aria-label="Assign new task"
+                    title="Assign Task">
+                    <i data-lucide="plus" class="h-4 w-4"></i>
+                  </button>
+
+                  <button
+                    id="task-remove-btn"
+                    type="button"
+                    class="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-red-400/40 bg-red-500/10 text-red-300 transition-transform duration-200 ease-out hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-40 active:scale-95"
+                    aria-label="Remove selected task"
+                    title="Remove Task"
+                    disabled>
+                    <i data-lucide="minus" class="h-4 w-4"></i>
+                  </button>
+
+                  <div id="task-reassign-wrap" class="relative">
+                    <button
+                      id="task-reassign-btn"
+                      type="button"
+                      class="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-white/15 bg-[#151515] text-zinc-200 transition-transform duration-200 ease-out hover:bg-[#1f1f1f] disabled:cursor-not-allowed disabled:opacity-40 active:scale-95"
+                      aria-label="Reassign selected task"
+                      title="Reassign"
+                      disabled>
+                      <i data-lucide="arrow-right-left" class="h-4 w-4"></i>
+                    </button>
+                    <div
+                      id="task-reassign-menu"
+                      class="absolute right-0 top-12 z-30 hidden w-56 rounded-xl border border-white/10 bg-[#141414] p-2 shadow-xl shadow-black/50">
+                      <p class="px-2 pb-2 text-[11px] uppercase tracking-[0.14em] text-zinc-500">Reassign to</p>
+                      <div id="task-reassign-list" class="max-h-56 space-y-1 overflow-auto"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div
+                id="task-assign-panel"
+                class="pointer-events-none max-h-0 overflow-hidden border-t border-white/10 opacity-0 transition-all duration-200 ease-out">
+                <form id="task-assign-form" class="grid gap-3 px-4 py-4 md:grid-cols-2">
+                  <div class="md:col-span-1">
+                    <label for="task-title" class="mb-1 block text-xs uppercase tracking-[0.12em] text-zinc-500">
+                      Task title
+                    </label>
+                    <input
+                      id="task-title"
+                      required
+                      type="text"
+                      class="w-full rounded-xl border border-white/10 bg-[#161616] px-3 py-2 text-sm text-zinc-100 outline-none transition duration-200 focus:border-[#4f98a3]/70 focus:ring-2 focus:ring-[#4f98a3]/40" />
+                  </div>
+                  <div class="md:col-span-1">
+                    <label
+                      for="task-member-select"
+                      class="mb-1 block text-xs uppercase tracking-[0.12em] text-zinc-500">
+                      Assign to
+                    </label>
+                    <select
+                      id="task-member-select"
+                      class="w-full rounded-xl border border-white/10 bg-[#161616] px-3 py-2 text-sm text-zinc-100 outline-none transition duration-200 focus:border-[#4f98a3]/70 focus:ring-2 focus:ring-[#4f98a3]/40"></select>
+                  </div>
+                  <div class="md:col-span-2">
+                    <label
+                      for="task-description"
+                      class="mb-1 block text-xs uppercase tracking-[0.12em] text-zinc-500">
+                      Description
+                    </label>
+                    <textarea
+                      id="task-description"
+                      rows="3"
+                      class="w-full rounded-xl border border-white/10 bg-[#161616] px-3 py-2 text-sm text-zinc-100 outline-none transition duration-200 focus:border-[#4f98a3]/70 focus:ring-2 focus:ring-[#4f98a3]/40"></textarea>
+                  </div>
+                  <div class="md:col-span-1">
+                    <p class="mb-1 block text-xs uppercase tracking-[0.12em] text-zinc-500">Priority</p>
+                    <div class="flex items-center gap-2">
+                      <button
+                        type="button"
+                        data-priority="HIGH"
+                        class="rounded-lg border border-white/20 px-3 py-1 text-xs text-zinc-300 transition duration-200 ease-out active:scale-95">
+                        High
+                      </button>
+                      <button
+                        type="button"
+                        data-priority="MEDIUM"
+                        class="rounded-lg border border-white/20 px-3 py-1 text-xs text-zinc-300 transition duration-200 ease-out active:scale-95">
+                        Medium
+                      </button>
+                      <button
+                        type="button"
+                        data-priority="LOW"
+                        class="rounded-lg border border-white/20 px-3 py-1 text-xs text-zinc-300 transition duration-200 ease-out active:scale-95">
+                        Low
+                      </button>
+                    </div>
+                  </div>
+                  <div class="md:col-span-1 flex items-end justify-end">
+                    <button
+                      type="submit"
+                      class="inline-flex min-h-[44px] items-center rounded-xl bg-[#4f98a3] px-4 text-sm font-semibold text-zinc-950 transition duration-200 ease-out hover:bg-[#68acb6] active:scale-95">
+                      Assign Task
+                    </button>
+                  </div>
+                  <p id="task-assign-error" class="md:col-span-2 text-xs text-red-400"></p>
+                </form>
+              </div>
+            </div>
+
+            <div id="task-board" class="flex-1 space-y-3 overflow-y-auto p-4" aria-live="polite">
+              <div class="rounded-xl border border-dashed border-white/15 bg-[#141414] p-6 text-center text-sm text-zinc-500">
+                Waiting for tasks…
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </section>
+
+    <section id="tab-adm-docs" class="panel" aria-labelledby="docs-heading">
+      <h2 id="docs-heading" class="panel-title">Lab Documents</h2>
+      <div class="embed-box">
+        <iframe src="https://drive.google.com/embeddedfolderview?id=1GcIZECLfmVw_flI_gut1LoHXuwG-Fjq5#grid" title="Admin Docs"></iframe>
+        <div class="embed-bar">
+          <span class="embed-lbl">Google Drive</span>
+          <a class="open-ext" href="https://drive.google.com/drive/folders/1GcIZECLfmVw_flI_gut1LoHXuwG-Fjq5" target="_blank" rel="noreferrer">Open ↗</a>
+        </div>
+      </div>
+    </section>
+
+    <section id="tab-adm-meet" class="panel" aria-labelledby="schedule-heading">
+      <h2 id="schedule-heading" class="panel-title">Meeting Schedule</h2>
+      <div class="embed-box">
+        <iframe src="https://docs.google.com/spreadsheets/d/13_1ja-HltpDqO2-fsLQSynfJPkb8-wjG/preview" title="Admin Meetings"></iframe>
+        <div class="embed-bar">
+          <span class="embed-lbl">Lab Schedule</span>
+          <a class="open-ext" href="https://docs.google.com/spreadsheets/d/13_1ja-HltpDqO2-fsLQSynfJPkb8-wjG/edit" target="_blank" rel="noreferrer">Edit ↗</a>
+        </div>
+      </div>
+    </section>
+    </main>
+  </div>
+
+  <div id="pwd-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Change Password</h3>
+        <button class="modal-close" id="pwd-close-btn">✕</button>
+      </div>
+      <form id="pwd-form" class="modal-form">
+        <div class="form-group">
+          <label for="pwd-current">Current Password</label>
+          <input type="password" id="pwd-current" required />
+        </div>
+        <div class="form-group">
+          <label for="pwd-new">New Password</label>
+          <input type="password" id="pwd-new" placeholder="Min 8 characters" required />
+        </div>
+        <div class="form-group">
+          <label for="pwd-confirm">Confirm Password</label>
+          <input type="password" id="pwd-confirm" required />
+        </div>
+        <p class="err" id="pwd-error"></p>
+        <div class="modal-buttons">
+          <button type="button" class="btn btn-secondary" id="pwd-cancel-btn">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="pwd-submit-btn">Change Password</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    window.lucide?.createIcons();
+  </script>
+  <script type="module" src="./js/app.js"></script>
+</body>
+</html>
