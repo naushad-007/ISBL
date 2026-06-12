@@ -23,12 +23,21 @@ const clientDir = path.resolve(__dirname, "..", "client");
 
 const allowedOrigins = (process.env.FRONTEND_ORIGIN || "")
   .split(",")
-  .map((origin) => origin.trim())
+  .map((origin) => origin.trim().replace(/\/$/, ""))
   .filter(Boolean);
 
 app.use(
   cors({
-    origin: allowedOrigins.length ? allowedOrigins : true
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      const cleanOrigin = origin.trim().replace(/\/$/, "");
+      if (allowedOrigins.length === 0 || allowedOrigins.includes(cleanOrigin)) {
+        callback(null, true);
+      } else {
+        callback(new Error(`CORS policy violation: ${origin} is not allowed.`));
+      }
+    },
+    credentials: true
   })
 );
 app.use(helmet({ contentSecurityPolicy: false }));
