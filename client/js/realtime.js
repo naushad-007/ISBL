@@ -22,7 +22,6 @@ export const connectRealtime = ({ onSync, onForceLogout, onTasksUpdate } = {}) =
     tasksUpdateHandler(payload?.tasks || []);
   });
   socket.on("force-logout", forceLogoutHandler);
-  socket.on("connect_error", forceLogoutHandler);
 
   return socket;
 };

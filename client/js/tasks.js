@@ -334,41 +334,52 @@ const bindEvents = () => {
     });
   });
 
-  refs.assignForm.addEventListener("submit", (event) => {
+  document.addEventListener("submit", (event) => {
+    const form = event.target.closest("#task-assign-form");
+    if (!form) return;
     event.preventDefault();
-    refs.assignError.textContent = "";
-    const title = refs.titleInput.value.trim();
-    const description = refs.descriptionInput.value.trim();
-    const memberId = Number(refs.memberSelect.value || state.selectedMemberId);
-    if (!title) {
-      refs.assignError.textContent = "Task title is required.";
-      return;
-    }
-    if (!Number.isInteger(memberId) || memberId <= 0) {
-      refs.assignError.textContent = "Please select a member.";
-      return;
-    }
-
-    emitRealtime(
-      "assign_task",
-      {
-        title,
-        description,
-        priority: state.selectedPriority,
-        memberId
-      },
-      (response) => {
-        if (!response?.ok) {
-          refs.assignError.textContent = response?.message || "Failed to assign task.";
-          return;
-        }
-        refs.assignForm.reset();
-        setPriorityToggle("MEDIUM");
-        refs.memberSelect.value = state.selectedMemberId ? String(state.selectedMemberId) : "";
-        setAssignPanel(false);
-        toast("Task assigned.");
+    try {
+      refs.assignError.textContent = "";
+      const title = refs.titleInput.value.trim();
+      const description = refs.descriptionInput.value.trim();
+      const memberId = parseInt(refs.memberSelect.value || state.selectedMemberId, 10);
+      if (!title) {
+        refs.assignError.textContent = "Task title is required.";
+        return;
       }
-    );
+      if (!Number.isInteger(memberId) || memberId <= 0) {
+        refs.assignError.textContent = "Please select a member.";
+        return;
+      }
+
+      emitRealtime(
+        "assign_task",
+        {
+          title,
+          description,
+          priority: state.selectedPriority,
+          memberId
+        },
+        (response) => {
+          try {
+            if (!response?.ok) {
+              refs.assignError.textContent = response?.message || "Failed to assign task.";
+              toast(response?.message || "Failed to assign task.", "err");
+              return;
+            }
+            form.reset();
+            setPriorityToggle("MEDIUM");
+            refs.memberSelect.value = state.selectedMemberId ? String(state.selectedMemberId) : "";
+            setAssignPanel(false);
+            toast("Task assigned.");
+          } catch (callbackErr) {
+            toast(callbackErr.message || "Failed to assign task.", "err");
+          }
+        }
+      );
+    } catch (err) {
+      toast(err.message || "Failed to assign task.", "err");
+    }
   });
 
   document.addEventListener("click", (event) => {

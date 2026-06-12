@@ -21,7 +21,7 @@ const revokeSession = db.prepare("UPDATE sessions SET revoked = 1 WHERE jti = ?"
 const createTokenAndSession = ({ role, userId, extra = {} }) => {
   const jti = uuidv4();
   const token = signToken({ role, jti, ...extra });
-  const expiresAt = new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString();
+  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
   createSession.run(jti, role === "admin" ? "admin" : "team", userId, expiresAt);
   return token;
 };

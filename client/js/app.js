@@ -5,6 +5,12 @@ import {
   renderAdminMembers,
   renderDashboardMembers
 } from "./members.js";
+import {
+  renderDashboardMeetings,
+  renderAdminMeetings,
+  bindMeetingForm,
+  bindAdminMeetingActions
+} from "./meetings.js";
 import { connectRealtime, disconnectRealtime } from "./realtime.js";
 import { handleTasksUpdate, initAdminTaskPanel, refreshTaskMembers } from "./tasks.js";
 import { initMemberTasks } from "./memberTasks.js";
@@ -51,6 +57,7 @@ const initDashboard = async () => {
   initTabs("dash-tabs");
   startClock("ds-date", "ds-time");
   await renderDashboardMembers();
+  await renderDashboardMeetings();
   const socketInstance = connectRealtime({
     onSync: () => renderDashboardMembers(),
     onForceLogout: async () => {
@@ -112,9 +119,12 @@ const initAdmin = async () => {
   initPasswordModal();
   bindAddMemberForm();
   bindAdminMemberActions();
+  bindMeetingForm();
+  bindAdminMeetingActions();
   startClock("as-date", "as-time");
 
   await renderAdminMembers();
+  await renderAdminMeetings();
 
   connectRealtime({
     onSync: async () => {

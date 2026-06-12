@@ -80,4 +80,12 @@ export const changePasswordApi = (currentPassword, newPassword, confirmPassword)
     body: JSON.stringify({ currentPassword, newPassword, confirmPassword })
   });
 
+export const getMeetingsApi = () => apiRequest("/api/meetings");
+export const addMeetingApi = (payload) =>
+  apiRequest("/api/meetings", { method: "POST", body: JSON.stringify(payload) });
+export const updateMeetingApi = (id, payload) =>
+  apiRequest(`/api/meetings/${id}`, { method: "PUT", body: JSON.stringify(payload) });
+export const deleteMeetingApi = (id) =>
+  apiRequest(`/api/meetings/${id}`, { method: "DELETE" });
+
 export const getApiBase = () => API_BASE;

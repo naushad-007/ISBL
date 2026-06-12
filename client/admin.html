@@ -374,6 +374,38 @@
           <a class="open-ext" href="https://docs.google.com/spreadsheets/d/13_1ja-HltpDqO2-fsLQSynfJPkb8-wjG/edit" target="_blank" rel="noreferrer">Edit ↗</a>
         </div>
       </div>
+
+      <div class="sep"></div>
+      <h3 class="panel-title">Manage Scheduled Meetings</h3>
+      <div id="admin-meetings-list" class="space-y-4 mb-6">
+        <!-- List of meetings for admin -->
+      </div>
+
+      <h3 class="panel-title" id="meeting-form-title">Schedule New Meeting</h3>
+      <form id="meeting-form" class="add-grid">
+        <input type="hidden" id="meet-id" value="" />
+        <div class="field">
+          <label for="meet-title">Title</label>
+          <input id="meet-title" type="text" required />
+        </div>
+        <div class="field">
+          <label for="meet-date">Date</label>
+          <input id="meet-date" type="date" required />
+        </div>
+        <div class="field">
+          <label for="meet-time">Time</label>
+          <input id="meet-time" type="time" required />
+        </div>
+        <div class="field">
+          <label for="meet-link">Meeting Link</label>
+          <input id="meet-link" type="text" placeholder="https://..." />
+        </div>
+        <div class="flex items-end gap-2">
+          <button class="btn btn-primary btn-sm" id="meet-submit-btn" type="submit">+ Schedule</button>
+          <button class="btn btn-secondary btn-sm hidden" id="meet-cancel-btn" type="button">Cancel</button>
+        </div>
+      </form>
+      <p class="err" id="meet-err"></p>
     </section>
     </main>
   </div>

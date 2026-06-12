@@ -9,6 +9,7 @@ import { hashPassword } from "./utils/hash.js";
 import authRoutes from "./routes/authRoutes.js";
 import memberRoutes from "./routes/memberRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
+import meetingRoutes from "./routes/meetingRoutes.js";
 import { initSocket } from "./socket.js";
 
 const app = express();
@@ -47,6 +48,7 @@ app.get("/api/health", (_, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/members", memberRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/meetings", meetingRoutes);
 
 const adminLookup = db.prepare("SELECT id FROM admins LIMIT 1");
 const createAdmin = db.prepare(
