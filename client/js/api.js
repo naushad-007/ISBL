@@ -1,3 +1,5 @@
+import { CONFIG } from './config.js';
+
 export const getApiBase = () => {
   const base = localStorage.getItem("ISBL_API_BASE");
   if (base) return base;
@@ -6,7 +8,7 @@ export const getApiBase = () => {
     return 'http://localhost:4000';
   }
 
-  return window.ISBL_API_BASE || 'https://isbl.onrender.com';
+  return window.ISBL_API_BASE || CONFIG.API_BASE;
 };
 const STORAGE_KEY = "isbl_auth";
 
