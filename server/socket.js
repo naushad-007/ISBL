@@ -15,13 +15,16 @@ const taskLookup = db.prepare(
    WHERE t.id = ?
    LIMIT 1`
 );
+const TASK_FETCH_LIMIT = 200;
+
 const listTasks = db.prepare(
   `SELECT t.id, t.title, t.description, t.priority, t.member_id, t.created_at, m.name AS member_name, m.entry_number AS member_entry
    FROM tasks t
    LEFT JOIN members m ON m.id = t.member_id
    ORDER BY
      CASE t.priority WHEN 'HIGH' THEN 1 WHEN 'MEDIUM' THEN 2 ELSE 3 END,
-     datetime(t.created_at) DESC`
+     datetime(t.created_at) DESC
+   LIMIT ?`
 );
 const listTasksForMember = db.prepare(
   `SELECT t.id, t.title, t.description, t.priority, t.member_id, t.created_at, m.name AS member_name, m.entry_number AS member_entry
@@ -30,7 +33,8 @@ const listTasksForMember = db.prepare(
    WHERE t.member_id = ?
    ORDER BY
      CASE t.priority WHEN 'HIGH' THEN 1 WHEN 'MEDIUM' THEN 2 ELSE 3 END,
-     datetime(t.created_at) DESC`
+     datetime(t.created_at) DESC
+   LIMIT ?`
 );
 const insertTask = db.prepare(
   "INSERT INTO tasks (title, description, priority, member_id) VALUES (?, ?, ?, ?)"
@@ -72,10 +76,10 @@ export const initSocket = (httpServer) => {
   ioInstance.on("connection", (socket) => {
     if (socket.user.role === "admin") {
       socket.join("admins");
-      socket.emit("tasks_update", { tasks: listTasks.all() });
+      socket.emit("tasks_update", { tasks: listTasks.all(TASK_FETCH_LIMIT) });
 
       socket.on("request_tasks", () => {
-        socket.emit("tasks_update", { tasks: listTasks.all() });
+        socket.emit("tasks_update", { tasks: listTasks.all(TASK_FETCH_LIMIT) });
       });
 
       socket.on("assign_task", (payload = {}, ack) => {
@@ -103,8 +107,11 @@ export const initSocket = (httpServer) => {
           }
 
           insertTask.run(title, description || null, priority, memberId);
-          ioInstance.to("admins").emit("tasks_update", { tasks: listTasks.all() });
-          ioInstance.to(`member:${memberId}`).emit("tasks_update_member", { tasks: listTasksForMember.all(memberId) });
+          const newTask = taskLookup.get(db.prepare("SELECT last_insert_rowid() AS id").get().id);
+
+          // Incremental: emit only the new task, not the full list
+          ioInstance.to("admins").emit("task_added", { task: newTask });
+          ioInstance.to(`member:${memberId}`).emit("task_added_member", { task: newTask });
           if (typeof ack === "function") ack({ ok: true });
         } catch (error) {
           if (typeof ack === "function") ack({ ok: false, message: "Failed to assign task." });
@@ -125,9 +132,11 @@ export const initSocket = (httpServer) => {
 
         const removedTaskMemberId = existingTask.member_id;
         deleteTask.run(taskId);
-        ioInstance.to("admins").emit("tasks_update", { tasks: listTasks.all() });
+
+        // Incremental: emit only the removed task id
+        ioInstance.to("admins").emit("task_removed", { taskId });
         if (removedTaskMemberId) {
-          ioInstance.to(`member:${removedTaskMemberId}`).emit("tasks_update_member", { tasks: listTasksForMember.all(removedTaskMemberId) });
+          ioInstance.to(`member:${removedTaskMemberId}`).emit("task_removed_member", { taskId });
         }
         if (typeof ack === "function") ack({ ok: true });
       });
@@ -152,14 +161,16 @@ export const initSocket = (httpServer) => {
         }
 
         reassignTask.run(memberId, taskId);
-        
-        ioInstance.to("admins").emit("tasks_update", { tasks: listTasks.all() });
+        const updatedTask = taskLookup.get(taskId);
+
+        // Incremental: emit the reassigned task
+        ioInstance.to("admins").emit("task_reassigned", { task: updatedTask });
         const oldTaskMemberId = existingTask.member_id;
         if (oldTaskMemberId && oldTaskMemberId !== memberId) {
-          ioInstance.to(`member:${oldTaskMemberId}`).emit("tasks_update_member", { tasks: listTasksForMember.all(oldTaskMemberId) });
+          ioInstance.to(`member:${oldTaskMemberId}`).emit("task_removed_member", { taskId });
         }
-        ioInstance.to(`member:${memberId}`).emit("tasks_update_member", { tasks: listTasksForMember.all(memberId) });
-        
+        ioInstance.to(`member:${memberId}`).emit("task_added_member", { task: updatedTask });
+
         if (typeof ack === "function") ack({ ok: true });
       });
     }
@@ -167,10 +178,10 @@ export const initSocket = (httpServer) => {
       socket.join("members");
       socket.join(`member:${socket.user.memberId}`);
       
-      socket.emit("tasks_update_member", { tasks: listTasksForMember.all(socket.user.memberId) });
+      socket.emit("tasks_update_member", { tasks: listTasksForMember.all(socket.user.memberId, TASK_FETCH_LIMIT) });
 
       socket.on("request_my_tasks", (_, ack) => {
-        socket.emit("tasks_update_member", { tasks: listTasksForMember.all(socket.user.memberId) });
+        socket.emit("tasks_update_member", { tasks: listTasksForMember.all(socket.user.memberId, TASK_FETCH_LIMIT) });
         if (typeof ack === "function") ack({ ok: true });
       });
     }

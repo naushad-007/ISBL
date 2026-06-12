@@ -1,4 +1,13 @@
-const API_BASE = window.ISBL_API_BASE || "http://localhost:4000";
+export const getApiBase = () => {
+  const base = localStorage.getItem("ISBL_API_BASE");
+  if (base) return base;
+
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    return 'http://localhost:4000';
+  }
+
+  return window.ISBL_API_BASE || 'https://isbl.onrender.com';
+};
 const STORAGE_KEY = "isbl_auth";
 
 const parseResponse = async (response) => {
@@ -41,7 +50,7 @@ export const apiRequest = async (path, options = {}) => {
     headers.Authorization = `Bearer ${auth.token}`;
   }
 
-  const response = await fetch(`${API_BASE}${path}`, {
+  const response = await fetch(`${getApiBase()}${path}`, {
     ...options,
     headers
   });
@@ -88,4 +97,4 @@ export const updateMeetingApi = (id, payload) =>
 export const deleteMeetingApi = (id) =>
   apiRequest(`/api/meetings/${id}`, { method: "DELETE" });
 
-export const getApiBase = () => API_BASE;
+

@@ -3,9 +3,12 @@ import http from "http";
 import path from "path";
 import cors from "cors";
 import express from "express";
+import helmet from "helmet";
+import morgan from "morgan";
 import { fileURLToPath } from "url";
 import db from "./database/db.js";
 import { hashPassword } from "./utils/hash.js";
+import { authLimiter, apiLimiter } from "./middleware/rateLimit.js";
 import authRoutes from "./routes/authRoutes.js";
 import memberRoutes from "./routes/memberRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
@@ -28,6 +31,8 @@ app.use(
     origin: allowedOrigins.length ? allowedOrigins : true
   })
 );
+app.use(helmet({ contentSecurityPolicy: false }));
+app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
 app.use(express.json());
 app.use(express.static(clientDir));
 
@@ -45,10 +50,10 @@ app.get("/api/health", (_, res) => {
   res.json({ status: "ok", service: "ISBL backend" });
 });
 
-app.use("/api/auth", authRoutes);
-app.use("/api/members", memberRoutes);
-app.use("/api/admin", adminRoutes);
-app.use("/api/meetings", meetingRoutes);
+app.use("/api/auth", authLimiter, authRoutes);
+app.use("/api/members", apiLimiter, memberRoutes);
+app.use("/api/admin", apiLimiter, adminRoutes);
+app.use("/api/meetings", apiLimiter, meetingRoutes);
 
 const adminLookup = db.prepare("SELECT id FROM admins LIMIT 1");
 const createAdmin = db.prepare(
@@ -70,6 +75,16 @@ const bootstrap = async () => {
     console.log(`ISBL backend listening on port ${port}`);
   });
 };
+
+// Centralized error handler — catches unhandled async/sync errors.
+// Prevents stack trace leaks in production.
+app.use((err, _req, res, _next) => {
+  const status = err.status || err.statusCode || 500;
+  console.error(`[ERROR] ${err.message}`, process.env.NODE_ENV !== "production" ? err.stack : "");
+  return res.status(status).json({
+    message: status === 500 ? "Internal server error." : err.message
+  });
+});
 
 bootstrap().catch((error) => {
   console.error("Failed to start server:", error);

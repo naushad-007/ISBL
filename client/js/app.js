@@ -12,7 +12,7 @@ import {
   bindAdminMeetingActions
 } from "./meetings.js";
 import { connectRealtime, disconnectRealtime } from "./realtime.js";
-import { handleTasksUpdate, initAdminTaskPanel, refreshTaskMembers } from "./tasks.js";
+import { handleTasksUpdate, handleTaskAdded, handleTaskRemoved, handleTaskReassigned, initAdminTaskPanel, refreshTaskMembers } from "./tasks.js";
 import { initMemberTasks } from "./memberTasks.js";
 import { byId, clearErrors, goToScreen, initRipple, initTabs, startClock, toast } from "./ui.js";
 
@@ -132,6 +132,9 @@ const initAdmin = async () => {
       await refreshTaskMembers();
     },
     onTasksUpdate: (tasks) => handleTasksUpdate(tasks),
+    onTaskAdded: (task) => handleTaskAdded(task),
+    onTaskRemoved: (taskId) => handleTaskRemoved(taskId),
+    onTaskReassigned: (task) => handleTaskReassigned(task),
     onForceLogout: () => {}
   });
 
@@ -139,6 +142,24 @@ const initAdmin = async () => {
 };
 
 document.addEventListener("DOMContentLoaded", async () => {
+  if (window.location.hostname.endsWith("netlify.app") && !localStorage.getItem("ISBL_API_BASE")) {
+    const url = window.prompt(
+      "ISBL Portal: Please enter your Railway backend URL (e.g., https://your-backend.up.railway.app):"
+    );
+    if (url) {
+      let cleanUrl = url.trim();
+      if (!cleanUrl.startsWith("http://") && !cleanUrl.startsWith("https://")) {
+        cleanUrl = "https://" + cleanUrl;
+      }
+      if (cleanUrl.endsWith("/")) {
+        cleanUrl = cleanUrl.slice(0, -1);
+      }
+      localStorage.setItem("ISBL_API_BASE", cleanUrl);
+      window.location.reload();
+      return;
+    }
+  }
+
   initRipple();
   const page = document.body.dataset.page;
   if (page === "index") {

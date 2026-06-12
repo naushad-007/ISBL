@@ -238,6 +238,45 @@ export const handleTasksUpdate = (incomingTasks) => {
   commitRender();
 };
 
+/** Incremental: a single task was added */
+export const handleTaskAdded = (task) => {
+  if (!task) return;
+  // Avoid duplicates
+  if (state.tasks.some((t) => t.id === task.id)) return;
+  state.tasks.push(task);
+  renderTaskBoard(new Set([task.id]));
+};
+
+/** Incremental: a single task was removed */
+export const handleTaskRemoved = (taskId) => {
+  if (!taskId) return;
+  const node = byTaskId(taskId);
+  if (node) {
+    node.classList.add("translate-x-full", "opacity-0", "transition-all", "duration-300");
+  }
+  setTimeout(() => {
+    state.tasks = state.tasks.filter((t) => t.id !== taskId);
+    if (state.selectedTaskId === taskId) {
+      state.selectedTaskId = null;
+      closeReassignMenu();
+    }
+    updateActionState();
+    renderTaskBoard();
+  }, node ? 300 : 0);
+};
+
+/** Incremental: a task was reassigned to a different member */
+export const handleTaskReassigned = (task) => {
+  if (!task) return;
+  const idx = state.tasks.findIndex((t) => t.id === task.id);
+  if (idx !== -1) {
+    state.tasks[idx] = task;
+  } else {
+    state.tasks.push(task);
+  }
+  renderTaskBoard();
+};
+
 const setPriorityToggle = (priority) => {
   state.selectedPriority = priority;
   refs.priorityToggles.forEach((button) => {

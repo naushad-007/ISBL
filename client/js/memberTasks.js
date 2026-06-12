@@ -8,12 +8,28 @@ export const initMemberTasks = (socket, containerId) => {
   
   if (!refs.taskContainer) return;
 
-  socketInstance.emit("request_my_tasks");
-
+  // Full-list replacement (initial connection + explicit request)
   socketInstance.on("tasks_update_member", ({ tasks }) => {
     state.tasks = tasks || [];
     renderMemberTasks();
   });
+
+  // Incremental: single task added for this member
+  socketInstance.on("task_added_member", ({ task }) => {
+    if (!task) return;
+    if (state.tasks.some((t) => t.id === task.id)) return;
+    state.tasks.push(task);
+    renderMemberTasks();
+  });
+
+  // Incremental: single task removed for this member
+  socketInstance.on("task_removed_member", ({ taskId }) => {
+    if (!taskId) return;
+    state.tasks = state.tasks.filter((t) => t.id !== taskId);
+    renderMemberTasks();
+  });
+
+  socketInstance.emit("request_my_tasks");
 };
 
 const renderMemberTasks = () => {

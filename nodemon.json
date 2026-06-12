@@ -1,0 +1,9 @@
+{
+  "ignore": [
+    "server/database/isbl.sqlite",
+    "server/database/isbl.sqlite-journal",
+    "server/database/isbl.sqlite-wal",
+    "server/database/isbl.sqlite-shm",
+    "node_modules/*"
+  ]
+}
